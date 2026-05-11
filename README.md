@@ -2,8 +2,16 @@
 
 > Visualize smart contract vulnerabilities as an interactive neural network.
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-neuroscan--eta.vercel.app-00ff88?style=for-the-badge&logo=vercel)](https://neuroscan-eta.vercel.app/)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Chains](https://img.shields.io/badge/chains-ETH%20|%20BSC%20|%20ARB%20|%20BASE-blue)
+![Chains](https://img.shields.io/badge/chains-ETH%20|%20BSC%20|%20ARB%20|%20BASE%20|%20POLY-blue)
+
+## 🔗 Live Demo
+
+> **[neuroscan-eta.vercel.app](https://neuroscan-eta.vercel.app/)** — Try it now, no install needed.
+
+> ⚠️ Requires a **free** [Etherscan API key](https://etherscan.io/myapikey) (30 sec signup) to scan live contracts.
+> One key works for ETH, BSC, Arbitrum, Base, and Polygon. Demo mode works without a key.
 
 ## What is NEUROSCAN?
 
