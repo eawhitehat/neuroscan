@@ -54,11 +54,19 @@
       <div class="input-group">
         <input type="text" id="contractAddress" placeholder="0x..." spellcheck="false" autocomplete="off">
         <select id="chainSelect">
-          <option value="eth">Ethereum</option>
           <option value="bsc" selected>BSC</option>
-          <option value="arb">Arbitrum</option>
-          <option value="base">Base</option>
+          <option value="eth">ETH</option>
+          <option value="arb">ARB</option>
+          <option value="base">BASE</option>
+          <option value="poly">POLY</option>
         </select>
+      </div>
+      <div class="apikey-toggle">
+        <button type="button" id="apikeyToggle" class="apikey-toggle-btn">🔑 API Key <span class="apikey-tag">optional</span></button>
+      </div>
+      <div id="apikeyGroup" class="apikey-group hidden">
+        <input type="text" id="apiKeyInput" placeholder="Etherscan/BscScan API Key (free tier)" spellcheck="false" autocomplete="off">
+        <p class="apikey-hint">Free key = faster scans & no rate limits. <a href="https://etherscan.io/apis" target="_blank">Get one →</a></p>
       </div>
       <div class="input-actions">
         <button id="scanBtn" class="btn-scan">

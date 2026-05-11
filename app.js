@@ -22,6 +22,10 @@ class NeuroScanApp {
     document.getElementById('contractAddress').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') this._startScan();
     });
+    // API key toggle
+    document.getElementById('apikeyToggle').addEventListener('click', () => {
+      document.getElementById('apikeyGroup').classList.toggle('hidden');
+    });
     // Close detail panel on Escape
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') document.getElementById('detailPanel').classList.add('hidden');
@@ -44,10 +48,16 @@ class NeuroScanApp {
     }
     this._resetUI();
     const chain = document.getElementById('chainSelect').value;
-    const fetcher = new ContractFetcher(chain);
+    const apiKey = (document.getElementById('apiKeyInput')?.value || '').trim();
+    const fetcher = new ContractFetcher(chain, apiKey);
+
+    // Disable buttons during scan
+    document.getElementById('scanBtn').disabled = true;
+    document.getElementById('demoBtn').disabled = true;
 
     try {
       this._addStatus(`Connecting to ${CHAINS[chain].name} explorer...`);
+      if (!apiKey) this._addStatus('ℹ No API key — using free tier (may be slower)');
       await this._delay(400);
 
       this._addStatus('Fetching contract ABI...');
@@ -62,9 +72,23 @@ class NeuroScanApp {
 
       await this._runAnalysis(source, abi, name, address);
     } catch (err) {
-      this._addStatus(`❌ ${err.message}`, 'error');
-      this._addStatus('Tip: Contract must be verified on the block explorer.', 'error');
+      if (err.message === 'API_KEY_REQUIRED') {
+        this._addStatus('🔑 Etherscan API V2 requires a free API key', 'error');
+        this._addStatus('→ Get yours free at etherscan.io/myapikey (30 sec)', 'error');
+        this._addStatus('→ Enter it in the 🔑 API Key field above, then retry', 'error');
+        // Auto-expand the API key section
+        const apikeyGroup = document.getElementById('apikeyGroup');
+        if (apikeyGroup.classList.contains('hidden')) {
+          apikeyGroup.classList.remove('hidden');
+          document.getElementById('apiKeyInput').focus();
+        }
+      } else {
+        this._addStatus(`❌ ${err.message}`, 'error');
+        this._addStatus('Tip: Contract must be verified on the block explorer.', 'error');
+      }
       this.isScanning = false;
+      document.getElementById('scanBtn').disabled = false;
+      document.getElementById('demoBtn').disabled = false;
     }
   }
 
@@ -125,6 +149,8 @@ class NeuroScanApp {
     // Stop scan line
     setTimeout(() => scanLine.classList.add('hidden'), 3000);
     this.isScanning = false;
+    document.getElementById('scanBtn').disabled = false;
+    document.getElementById('demoBtn').disabled = false;
   }
 
   _showRiskPanel(score, findings) {

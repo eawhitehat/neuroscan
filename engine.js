@@ -1,40 +1,107 @@
 /* ═══════════════════════════════════════════
-   NEUROSCAN — Analysis Engine
-   Contract fetching + Vulnerability detection
+   NEUROSCAN — Analysis Engine v3
+   Etherscan API V2 — All chains unified
    ═══════════════════════════════════════════ */
 
+/**
+ * Etherscan V2 unified API (api.etherscan.io/v2/api?chainid=X)
+ * covers: ETH (1), BSC (56), ARB (42161), BASE (8453), Polygon (137), etc.
+ * Old V1 per-chain endpoints (bscscan.com, arbiscan.io) are DEPRECATED.
+ */
 const CHAINS = {
-  eth:  { name: 'Ethereum', api: 'https://api.etherscan.io/api', key: 'YourApiKeyToken', explorer: 'https://etherscan.io' },
-  bsc:  { name: 'BSC',      api: 'https://api.bscscan.com/api', key: 'YourApiKeyToken', explorer: 'https://bscscan.com' },
-  arb:  { name: 'Arbitrum', api: 'https://api.arbiscan.io/api', key: 'YourApiKeyToken', explorer: 'https://arbiscan.io' },
-  base: { name: 'Base',     api: 'https://api.basescan.org/api', key: 'YourApiKeyToken', explorer: 'https://basescan.org' },
+  eth:  { name: 'Ethereum', chainId: 1,     explorer: 'https://etherscan.io' },
+  bsc:  { name: 'BSC',      chainId: 56,    explorer: 'https://bscscan.com' },
+  arb:  { name: 'Arbitrum', chainId: 42161, explorer: 'https://arbiscan.io' },
+  base: { name: 'Base',     chainId: 8453,  explorer: 'https://basescan.org' },
+  poly: { name: 'Polygon',  chainId: 137,   explorer: 'https://polygonscan.com' },
 };
+
+const ETHERSCAN_V2 = 'https://api.etherscan.io/v2/api';
 
 /* ── Contract Fetcher ── */
 class ContractFetcher {
-  constructor(chain) {
+  constructor(chain, apiKey) {
     this.chain = CHAINS[chain] || CHAINS.bsc;
+    this.apiKey = (apiKey || '').trim();
+  }
+
+  _buildUrl(params) {
+    // Etherscan V2: single unified endpoint — chainid selects the network
+    let url = `${ETHERSCAN_V2}?chainid=${this.chain.chainId}&${params}`;
+    if (this.apiKey) url += `&apikey=${this.apiKey}`;
+    return url;
+  }
+
+  async _fetchWithRetry(url, retries = 2) {
+    for (let i = 0; i <= retries; i++) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Network error HTTP ${res.status}`);
+        const data = await res.json();
+        const result = data.result || '';
+
+        if (typeof result === 'string') {
+          // V2 API key missing
+          if (result.includes('Missing') || result.includes('Invalid API Key') || result.includes('invalid api key')) {
+            throw new Error('API_KEY_REQUIRED');
+          }
+          // Rate limit
+          if (result.includes('rate limit') || result.includes('Max rate')) {
+            if (i < retries) {
+              await new Promise(r => setTimeout(r, 5500));
+              continue;
+            }
+            throw new Error('Rate limit reached. Try again in a few seconds.');
+          }
+        }
+        return data;
+      } catch (err) {
+        if (err.message === 'API_KEY_REQUIRED') throw err;
+        if (i === retries) throw err;
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
   }
 
   async fetchABI(address) {
-    const url = `${this.chain.api}?module=contract&action=getabi&address=${address}&apikey=${this.chain.key}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.status !== '1') throw new Error('ABI not found — contract may not be verified');
+    if (!this.apiKey) {
+      throw new Error('API_KEY_REQUIRED');
+    }
+    const url = this._buildUrl(`module=contract&action=getabi&address=${address}`);
+    const data = await this._fetchWithRetry(url);
+    if (data.status !== '1') {
+      const msg = (data.result || '').toLowerCase();
+      if (msg.includes('not verified') || msg.includes('source code not verified')) {
+        throw new Error(`Contract not verified on ${this.chain.name}. Only verified contracts can be scanned.`);
+      }
+      throw new Error(`ABI not found on ${this.chain.name} — make sure the contract is verified.`);
+    }
     return JSON.parse(data.result);
   }
 
   async fetchSource(address) {
-    const url = `${this.chain.api}?module=contract&action=getsourcecode&address=${address}&apikey=${this.chain.key}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.status !== '1' || !data.result[0].SourceCode) throw new Error('Source not found');
+    const url = this._buildUrl(`module=contract&action=getsourcecode&address=${address}`);
+    const data = await this._fetchWithRetry(url);
+    if (data.status !== '1' || !data.result?.[0]?.SourceCode) {
+      throw new Error(`Source code not found on ${this.chain.name}`);
+    }
     const r = data.result[0];
+    if (!r.SourceCode) {
+      throw new Error(`Contract is not verified on ${this.chain.name}.`);
+    }
     let src = r.SourceCode;
+    // Handle JSON-encoded multi-file sources (Etherscan Hardhat/Foundry format)
     if (src.startsWith('{{')) {
       try {
         const parsed = JSON.parse(src.slice(1, -1));
         src = Object.values(parsed.sources).map(s => s.content).join('\n');
+      } catch { /* use raw */ }
+    } else if (src.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(src);
+        if (parsed.sources) {
+          src = Object.values(parsed.sources).map(s => s.content).join('\n');
+        }
       } catch { /* use raw */ }
     }
     return { source: src, name: r.ContractName, compiler: r.CompilerVersion, optimization: r.OptimizationUsed === '1' };

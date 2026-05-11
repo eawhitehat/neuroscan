@@ -291,6 +291,63 @@ main.scanning {
   border-color: var(--accent);
 }
 
+/* ── API KEY (optional) ── */
+.apikey-toggle {
+  margin-bottom: 10px;
+}
+.apikey-toggle-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.apikey-toggle-btn:hover { color: var(--accent); }
+.apikey-tag {
+  font-size: 9px;
+  background: rgba(0,212,255,0.1);
+  color: var(--info);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+}
+
+.apikey-group {
+  margin-bottom: 14px;
+  animation: fadeIn 0.3s ease-out;
+}
+.apikey-group input {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  outline: none;
+  transition: border-color 0.3s;
+}
+.apikey-group input:focus { border-color: var(--info); }
+.apikey-group input::placeholder { color: var(--text-dim); }
+.apikey-hint {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 6px;
+  font-family: var(--font-mono);
+}
+.apikey-hint a {
+  color: var(--info);
+  text-decoration: none;
+}
+.apikey-hint a:hover { text-decoration: underline; }
+
 /* ── BUTTONS ── */
 .input-actions {
   display: flex;
