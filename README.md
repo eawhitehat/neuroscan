@@ -44,7 +44,7 @@ git clone https://github.com/eawhitehat/neuroscan.git
 open neuroscan/index.html
 ```
 
-Or visit the [live demo](https://neuroscan.vercel.app).
+Or visit the [live demo](https://neuroscan-eta.vercel.app/).
 
 ## How It Works
 
